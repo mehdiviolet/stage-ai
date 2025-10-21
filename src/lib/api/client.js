@@ -1,34 +1,85 @@
+// src/lib/api/client.js
 import axios from "axios";
+import {
+  requestInterceptor,
+  requestErrorInterceptor,
+  responseInterceptor,
+  responseErrorInterceptor,
+} from "./interceptors";
 
-export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 1500,
+/**
+ * Configurazione base del client API
+ */
+const API_CONFIG = {
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api",
+  timeout: 10000, // 10 secondi
   headers: {
-    "Content-type": "application/json",
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
-});
+};
 
-//Interceptor REQUEST esegue prima di ogni chiamata
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log("API Request:", config.method.toUpperCase(), config.url);
-    return config;
-  },
-  (error) => {
-    console.error("Error", error);
-    return Promise.reject(error);
-  }
-);
+/**
+ * Istanza Axios configurata
+ * Usata per tutte le chiamate API dell'applicazione
+ */
+const apiClient = axios.create(API_CONFIG);
 
+// Aggiungi riferimento all'istanza axios per i retry
+apiClient.interceptors.request.use((config) => {
+  config.axios = apiClient;
+  config._retryCount = 0;
+  return requestInterceptor(config);
+}, requestErrorInterceptor);
+
+// Interceptor per le risposte
 apiClient.interceptors.response.use(
-  (response) => {
-    console.log("API Response");
-    return response;
-  },
-  (error) => {
-    // const status = error?.response?.status;
-    // const message = error?.response?.data?.message || error.message;
-
-    return Promise.reject(error);
-  }
+  responseInterceptor,
+  responseErrorInterceptor
 );
+
+/**
+ * Helper methods per chiamate comuni
+ */
+export const api = {
+  /**
+   * GET request
+   */
+  get: (url, config = {}) => apiClient.get(url, config),
+
+  /**
+   * POST request
+   */
+  post: (url, data, config = {}) => apiClient.post(url, data, config),
+
+  /**
+   * PUT request
+   */
+  put: (url, data, config = {}) => apiClient.put(url, data, config),
+
+  /**
+   * PATCH request
+   */
+  patch: (url, data, config = {}) => apiClient.patch(url, data, config),
+
+  /**
+   * DELETE request
+   */
+  delete: (url, config = {}) => apiClient.delete(url, config),
+};
+
+/**
+ * Esporta l'istanza configurata
+ */
+export default apiClient;
+
+/**
+ * Info configurazione (per debugging)
+ */
+if (import.meta.env.DEV) {
+  console.log("🔧 API Client configurato:", {
+    baseURL: API_CONFIG.baseURL,
+    timeout: `${API_CONFIG.timeout}ms`,
+    mockEnabled: import.meta.env.VITE_ENABLE_MOCK === "true",
+  });
+}
