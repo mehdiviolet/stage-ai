@@ -2,8 +2,8 @@
 import { configureStore } from "@reduxjs/toolkit";
 import chatReducer from "../features/chat/chatSlice";
 import sessionReducer from "../features/sessions/sessionSlice";
+import settingsReducer from "../features/settings/settingsSlice";
 import { persistMiddleware } from "./middleware/persistMiddleware";
-// import { loadSessions, loadCurrentSessionId } from "../lib/storage/sessions";
 import { loadSessions, loadCurrentSessionId } from "../lib/storage/session";
 
 /**
@@ -42,7 +42,7 @@ export const store = configureStore({
     // Aggiungi qui tutti i reducers dell'app
     chat: chatReducer,
     sessions: sessionReducer,
-    // Futuro: auth, settings, ecc.
+    settings: settingsReducer,
   },
 
   // Stato precaricato da localStorage
@@ -56,7 +56,7 @@ export const store = configureStore({
         // Ignora queste action types per check serializzazione
         ignoredActions: ["chat/addMessage"],
       },
-    }),
+    }).concat(persistMiddleware), // ← Aggiungi middleware per auto-save
 
   // DevTools configurazione
   devTools: import.meta.env.DEV, // Solo in sviluppo
@@ -75,4 +75,5 @@ if (import.meta.env.DEV) {
     reducers: Object.keys(store.getState()),
     devTools: "enabled",
   });
+  console.log("📊 State iniziale:", store.getState());
 }
