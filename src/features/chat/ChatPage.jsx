@@ -1,5 +1,5 @@
 // src/features/chat/ChatPage.jsx
-import { useEffect, useState } from "react"; // ← AGGIUNGI useState
+import { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -14,40 +14,35 @@ import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import {
   loadSessionMessages,
-  clearMessages,
   selectMessages,
-  selectIsLoading,
   selectError,
   addMessage,
 } from "./chatSlice";
 import {
   selectCurrentSession,
   updateSessionMessages,
-  clearSessionMessages, // ← AGGIUNGI questo import
+  clearSessionMessages,
 } from "../sessions/sessionSlice";
 import apiClient from "../../lib/api/client";
 
 export default function ChatPage() {
   const dispatch = useDispatch();
 
-  // ✅ AGGIUNGI stato locale per input e loading
   const [inputMessage, setInputMessage] = useState("");
   const [isLoadingAPI, setIsLoadingAPI] = useState(false);
 
-  // Leggi lo stato da Redux
   const messages = useSelector(selectMessages);
-  const isLoading = useSelector(selectIsLoading);
   const error = useSelector(selectError);
   const currentSession = useSelector(selectCurrentSession);
 
-  // Quando cambia la sessione corrente, carica i suoi messaggi
+  // Carica messaggi quando cambia sessione
   useEffect(() => {
     if (currentSession) {
       dispatch(loadSessionMessages(currentSession.messages));
     }
   }, [currentSession?.id, dispatch]);
 
-  // Quando cambiano i messaggi, aggiorna la sessione
+  // Salva messaggi quando cambiano
   useEffect(() => {
     if (currentSession && messages.length > 0) {
       dispatch(
@@ -59,39 +54,39 @@ export default function ChatPage() {
     }
   }, [messages, currentSession?.id, dispatch]);
 
-  // ✅ Handler per l'invio del messaggio
+  // ✅ HANDLER INVIO MESSAGGIO - STRUTTURA CORRETTA
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !currentSession) return;
 
+    // ✅ Usa la struttura corretta: role + content
     const userMessage = {
-      id: Date.now(),
-      text: inputMessage.trim(),
-      sender: "user",
+      id: Date.now().toString(),
+      role: "user", // ✅ "role" non "sender"
+      content: inputMessage.trim(), // ✅ "content" non "text"
       timestamp: new Date().toISOString(),
     };
 
-    // Aggiungi subito il messaggio dell'utente
+    // Aggiungi il messaggio utente
     dispatch(addMessage(userMessage));
 
+    // Resetta input
     setInputMessage("");
     setIsLoadingAPI(true);
 
     try {
-      // ✅ CHIAMATA API REALE
+      // Chiamata API
       const response = await apiClient.post("/chat/ask", {
-        message: userMessage.text,
+        message: userMessage.content,
         sessionId: currentSession.id,
-        history: messages, // Invia lo storico per contesto
+        history: messages,
       });
 
-      // Messaggio di risposta dall'AI
+      // ✅ Risposta AI con struttura corretta
       const aiMessage = {
-        id: Date.now() + 1,
-        text:
-          response.data.reply ||
-          response.data.message ||
-          "Nessuna risposta dall'AI",
-        sender: "ai",
+        id: (Date.now() + 1).toString(),
+        role: "assistant", // ✅ "role"
+        content:
+          response.data.reply || response.data.message || "Nessuna risposta", // ✅ "content"
         timestamp: new Date().toISOString(),
       };
 
@@ -99,15 +94,15 @@ export default function ChatPage() {
     } catch (error) {
       console.error("❌ Errore API:", error);
 
-      // Messaggio di errore mostrato nella chat
+      // ✅ Messaggio di errore con struttura corretta
       const errorMessage = {
-        id: Date.now() + 1,
-        text: `⚠️ Errore: ${
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: `⚠️ Errore: ${
           error.response?.data?.message ||
           error.message ||
           "Impossibile contattare il server"
         }`,
-        sender: "ai",
         timestamp: new Date().toISOString(),
       };
 
@@ -117,11 +112,10 @@ export default function ChatPage() {
     }
   };
 
-  // ✅ Handler per cancellare la conversazione
+  // Handler cancellazione chat
   const handleClearChat = () => {
     if (window.confirm("Vuoi davvero cancellare tutta la conversazione?")) {
       if (currentSession) {
-        // Pulisci i messaggi della sessione corrente
         dispatch(clearSessionMessages(currentSession.id));
         dispatch(loadSessionMessages([]));
       }
@@ -139,7 +133,7 @@ export default function ChatPage() {
           overflow: "hidden",
         }}
       >
-        {/* HEADER con titolo e bottone cancella */}
+        {/* HEADER */}
         <Box
           sx={{
             display: "flex",
@@ -159,18 +153,12 @@ export default function ChatPage() {
             💬 <span>Chat con MadGem</span>
           </Typography>
 
-          <Tooltip title="Cancella tutta la conversazione">
+          <Tooltip title="Cancella conversazione">
             <span>
               <IconButton
                 onClick={handleClearChat}
                 disabled={messages.length === 0}
                 color="error"
-                sx={{
-                  "&:hover": {
-                    bgcolor: "error.light",
-                    color: "error.dark",
-                  },
-                }}
               >
                 <DeleteOutlineIcon />
               </IconButton>
@@ -178,12 +166,12 @@ export default function ChatPage() {
           </Tooltip>
         </Box>
 
-        {/* Area messaggi */}
+        {/* MESSAGGI */}
         <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
           <MessageList messages={messages} isLoading={isLoadingAPI} />
         </Box>
 
-        {/* Input messaggio */}
+        {/* INPUT */}
         <Box sx={{ borderTop: 1, borderColor: "divider", p: 2 }}>
           <ChatInput
             value={inputMessage}

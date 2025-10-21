@@ -1,4 +1,5 @@
 // src/lib/api/interceptors.js
+import apiClient from "./client";
 import { handleApiError } from "./errorHandler";
 
 /**
@@ -87,7 +88,7 @@ export const responseErrorInterceptor = async (error) => {
       setTimeout(resolve, 1000 * originalRequest._retryCount)
     );
 
-    return error.config.axios(originalRequest);
+    return apiClient(originalRequest);
   }
 
   // Gestione errore 401 (Unauthorized) - futuro

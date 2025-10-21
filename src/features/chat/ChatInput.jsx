@@ -1,21 +1,23 @@
-// src/features/chat/components/ChatInput.jsx
-import { useState } from "react";
+// src/features/chat/ChatInput.jsx
+// VERSIONE CONTROLLATA - Il parent (ChatPage) controlla il valore
 import { Box, TextField, IconButton, Alert } from "@mui/material";
 import { Send } from "@mui/icons-material";
 
-export default function ChatInput({ onSendMessage, disabled, error }) {
-  const [inputValue, setInputValue] = useState("");
-
+export default function ChatInput({
+  value, // ✅ Riceve il valore dal parent
+  onChange, // ✅ Riceve l'handler dal parent
+  onSendMessage,
+  disabled,
+  error,
+}) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (inputValue.trim() && !disabled) {
-      onSendMessage(inputValue);
-      setInputValue(""); // Reset input dopo invio
+    if (value.trim() && !disabled) {
+      onSendMessage(); // ✅ Non passa più il valore (ChatPage lo ha già)
     }
   };
 
-  // ✅ USA onKeyDown invece di onKeyPress (deprecato)
   const handleKeyDown = (e) => {
     // Invio con Enter (senza Shift)
     if (e.key === "Enter" && !e.shiftKey) {
@@ -43,11 +45,11 @@ export default function ChatInput({ onSendMessage, disabled, error }) {
           fullWidth
           multiline
           maxRows={4}
-          minRows={1} // ✅ Aggiungi questo per partire da una riga
+          minRows={1}
           placeholder="Scrivi un messaggio a MadGem..."
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown} // ✅ Cambiato da onKeyPress
+          value={value} // ✅ Usa il valore dal parent
+          onChange={(e) => onChange(e.target.value)} // ✅ Notifica il parent
+          onKeyDown={handleKeyDown}
           disabled={disabled}
           variant="outlined"
           sx={{
@@ -60,7 +62,7 @@ export default function ChatInput({ onSendMessage, disabled, error }) {
         <IconButton
           type="submit"
           color="primary"
-          disabled={disabled || !inputValue.trim()}
+          disabled={disabled || !value.trim()} // ✅ Usa value invece di inputValue
           sx={{
             bgcolor: "primary.main",
             color: "white",
