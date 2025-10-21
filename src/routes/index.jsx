@@ -1,6 +1,7 @@
+// src/routes/index.jsx
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AppLayout } from "../components/layout/AppLayout";
-import { ChatPage } from "../pages/ChatPage";
+import ChatPage from "../features/chat/ChatPage"; // ← CAMBIATO: ora importa da features
 import { LoginPage } from "../pages/LoginPage";
 import { HistoryPage } from "../pages/HistoryPage";
 import { SettingsPage } from "../pages/SettingsPage";
@@ -20,7 +21,6 @@ const router = createBrowserRouter([
   },
   {
     path: "/login",
-    // Login senza layout (full page)
     element: <LoginPage />,
   },
   {
@@ -40,7 +40,6 @@ const router = createBrowserRouter([
     ),
   },
   {
-    // 404 - Pagina non trovata
     path: "*",
     element: (
       <AppLayout>

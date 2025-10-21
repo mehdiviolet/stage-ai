@@ -36,7 +36,7 @@ export default function ChatInput({ onSendMessage, disabled, error }) {
       <Box
         component="form"
         onSubmit={handleSubmit}
-        sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}
+        sx={{ display: "flex", gap: 2, alignItems: "flex-end" }}
       >
         <TextField
           fullWidth

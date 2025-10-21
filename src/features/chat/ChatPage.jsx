@@ -1,8 +1,8 @@
 // src/features/chat/ChatPage.jsx
 import { useState } from "react";
 import { Box, Container, Paper } from "@mui/material";
-import MessageList from "./components/MessageList";
-import ChatInput from "./components/ChatInput";
+import MessageList from "./MessageList";
+import ChatInput from "./ChatInput";
 
 export default function ChatPage() {
   // Stato locale per i messaggi
