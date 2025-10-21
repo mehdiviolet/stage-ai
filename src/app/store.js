@@ -4,11 +4,13 @@ import sessionReducer, {
   loadSessionsFromStorage,
 } from "../features/sessions/sessionSlice";
 import settingsReducer from "../features/settings/settingsSlice";
+import chatReducer from "../features/chat/chatSlice"; // ← AGGIUNGI QUESTO
 
 export const store = configureStore({
   reducer: {
     sessions: sessionReducer,
     settings: settingsReducer,
+    chat: chatReducer, // ← AGGIUNGI QUESTO
   },
 });
 
@@ -21,7 +23,6 @@ let previousState = store.getState().sessions;
 store.subscribe(() => {
   const currentState = store.getState().sessions;
 
-  // Salva solo se lo stato delle sessioni è cambiato
   if (currentState !== previousState) {
     try {
       localStorage.setItem("sessions", JSON.stringify(currentState));

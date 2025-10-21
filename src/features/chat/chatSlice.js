@@ -40,7 +40,7 @@ export const sendMessageThunk = createAsyncThunk(
 
       // Salva il sessionId corrente per riferimento
       const state = getState();
-      const currentSessionId = state.sessions.currentSessionId;
+      const currentSessionId = state.chat.currentSessionId;
 
       return { ...result, currentSessionId };
     } catch (error) {
@@ -166,7 +166,8 @@ export const {
 /**
  * Selectors - Per leggere lo stato in modo ottimizzato
  */
-export const selectMessages = (state) => state.chat.messages;
+// export const selectMessages = (state) => state.chat.messages;
+export const selectMessages = (state) => state.chat?.messages || [];
 export const selectIsLoading = (state) => state.chat.isLoading;
 export const selectError = (state) => state.chat.error;
 export const selectCurrentSessionId = (state) => state.chat.currentSessionId;

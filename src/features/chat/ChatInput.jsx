@@ -1,196 +1,92 @@
-// src/features/chat/ChatPage.jsx
-import { useEffect, useState } from "react";
-import {
-  Box,
-  Container,
-  Paper,
-  IconButton,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import { useSelector, useDispatch } from "react-redux";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import MessageList from "./MessageList";
-import ChatInput from "./ChatInput"; // ← NOTA il percorso corretto
-import {
-  loadSessionMessages,
-  clearMessages,
-  selectMessages,
-  selectIsLoading,
-  selectError,
-  addMessage,
-} from "./chatSlice";
-import {
-  selectCurrentSession,
-  updateSessionMessages,
-  clearSessionMessages,
-} from "../sessions/sessionSlice";
-import apiClient from "../../lib/api/client";
+// src/features/chat/components/ChatInput.jsx
+import { useState } from "react";
+import { Box, TextField, IconButton, Alert } from "@mui/material";
+import { Send } from "@mui/icons-material";
 
-export default function ChatPage() {
-  const dispatch = useDispatch();
+export default function ChatInput({ onSendMessage, disabled, error }) {
+  const [inputValue, setInputValue] = useState("");
 
-  // Stato locale solo per il loading dell'API
-  const [isLoadingAPI, setIsLoadingAPI] = useState(false);
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-  // Leggi lo stato da Redux
-  const messages = useSelector(selectMessages);
-  const isLoading = useSelector(selectIsLoading);
-  const error = useSelector(selectError);
-  const currentSession = useSelector(selectCurrentSession);
-
-  // Quando cambia la sessione corrente, carica i suoi messaggi
-  useEffect(() => {
-    if (currentSession) {
-      dispatch(loadSessionMessages(currentSession.messages));
-    }
-  }, [currentSession?.id, dispatch]);
-
-  // Quando cambiano i messaggi, aggiorna la sessione
-  useEffect(() => {
-    if (currentSession && messages.length > 0) {
-      dispatch(
-        updateSessionMessages({
-          sessionId: currentSession.id,
-          messages: messages,
-        })
-      );
-    }
-  }, [messages, currentSession?.id, dispatch]);
-
-  // ✅ Handler per l'invio del messaggio
-  // NOTA: riceve il testo direttamente da ChatInput
-  const handleSendMessage = async (messageText) => {
-    if (!messageText.trim() || !currentSession) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: messageText.trim(),
-      sender: "user",
-      timestamp: new Date().toISOString(),
-    };
-
-    // Aggiungi subito il messaggio dell'utente
-    dispatch(addMessage(userMessage));
-
-    setIsLoadingAPI(true);
-
-    try {
-      // ✅ CHIAMATA API REALE
-      const response = await apiClient.post("/chat/ask", {
-        message: userMessage.text,
-        sessionId: currentSession.id,
-        history: messages,
-      });
-
-      // Messaggio di risposta dall'AI
-      const aiMessage = {
-        id: Date.now() + 1,
-        text:
-          response.data.reply ||
-          response.data.message ||
-          response.data.answer ||
-          "Nessuna risposta dall'AI",
-        sender: "ai",
-        timestamp: new Date().toISOString(),
-      };
-
-      dispatch(addMessage(aiMessage));
-    } catch (error) {
-      console.error("❌ Errore API:", error);
-
-      // Messaggio di errore mostrato nella chat
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: `⚠️ Errore: ${
-          error.response?.data?.message ||
-          error.message ||
-          "Impossibile contattare il server"
-        }`,
-        sender: "ai",
-        timestamp: new Date().toISOString(),
-      };
-
-      dispatch(addMessage(errorMessage));
-    } finally {
-      setIsLoadingAPI(false);
+    if (inputValue.trim() && !disabled) {
+      onSendMessage(inputValue);
+      setInputValue(""); // Reset input dopo invio
     }
   };
 
-  // ✅ Handler per cancellare la conversazione
-  const handleClearChat = () => {
-    if (window.confirm("Vuoi davvero cancellare tutta la conversazione?")) {
-      if (currentSession) {
-        dispatch(clearSessionMessages(currentSession.id));
-        dispatch(loadSessionMessages([]));
-      }
+  // ✅ USA onKeyDown invece di onKeyPress (deprecato)
+  const handleKeyDown = (e) => {
+    // Invio con Enter (senza Shift)
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
 
   return (
-    <Container maxWidth="lg" sx={{ height: "calc(100vh - 120px)", py: 3 }}>
-      <Paper
-        elevation={3}
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
+    <Box>
+      {/* Messaggio di errore */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Form di input */}
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{ display: "flex", gap: 2, alignItems: "flex-end" }}
       >
-        {/* HEADER con titolo e bottone cancella */}
-        <Box
+        <TextField
+          fullWidth
+          multiline
+          maxRows={4}
+          minRows={1} // ✅ Aggiungi questo per partire da una riga
+          placeholder="Scrivi un messaggio a MadGem..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown} // ✅ Cambiato da onKeyPress
+          disabled={disabled}
+          variant="outlined"
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            px: 3,
-            py: 2,
-            borderBottom: 2,
-            borderColor: "divider",
-            bgcolor: "background.default",
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+            },
+          }}
+        />
+
+        <IconButton
+          type="submit"
+          color="primary"
+          disabled={disabled || !inputValue.trim()}
+          sx={{
+            bgcolor: "primary.main",
+            color: "white",
+            "&:hover": {
+              bgcolor: "primary.dark",
+            },
+            "&:disabled": {
+              bgcolor: "action.disabledBackground",
+            },
           }}
         >
-          <Typography
-            variant="h6"
-            sx={{ display: "flex", alignItems: "center", gap: 1 }}
-          >
-            💬 <span>Chat con MadGem</span>
-          </Typography>
+          <Send />
+        </IconButton>
+      </Box>
 
-          <Tooltip title="Cancella tutta la conversazione">
-            <span>
-              <IconButton
-                onClick={handleClearChat}
-                disabled={messages.length === 0}
-                color="error"
-                sx={{
-                  "&:hover": {
-                    bgcolor: "error.light",
-                    color: "error.dark",
-                  },
-                }}
-              >
-                <DeleteOutlineIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-
-        {/* Area messaggi */}
-        <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-          <MessageList messages={messages} isLoading={isLoadingAPI} />
-        </Box>
-
-        {/* Input messaggio */}
-        <Box sx={{ borderTop: 1, borderColor: "divider", p: 2 }}>
-          <ChatInput
-            onSendMessage={handleSendMessage}
-            disabled={isLoadingAPI}
-            error={error}
-          />
-        </Box>
-      </Paper>
-    </Container>
+      {/* Hint */}
+      <Box
+        sx={{
+          fontSize: "0.75rem",
+          color: "text.secondary",
+          mt: 1,
+          textAlign: "center",
+        }}
+      >
+        Premi Invio per inviare, Shift+Invio per andare a capo
+      </Box>
+    </Box>
   );
 }
