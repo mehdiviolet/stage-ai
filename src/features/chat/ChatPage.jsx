@@ -1,64 +1,42 @@
 // src/features/chat/ChatPage.jsx
-import { useState } from "react";
-import { Box, Container, Paper } from "@mui/material";
+import {
+  Box,
+  Container,
+  Paper,
+  IconButton,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { useSelector, useDispatch } from "react-redux";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
+import {
+  sendMessageThunk,
+  clearMessages,
+  selectMessages,
+  selectIsLoading,
+  selectError,
+} from "./chatSlice";
 
 export default function ChatPage() {
-  // Stato locale per i messaggi
-  const [messages, setMessages] = useState([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Ciao! Sono MadGem, il tuo assistente AI. Come posso aiutarti oggi?",
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const dispatch = useDispatch();
 
-  // Stato per il loading
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Stato per gli errori
-  const [error, setError] = useState(null);
+  // Leggi lo stato da Redux
+  const messages = useSelector(selectMessages);
+  const isLoading = useSelector(selectIsLoading);
+  const error = useSelector(selectError);
 
   // Handler per l'invio del messaggio
   const handleSendMessage = async (messageText) => {
     if (!messageText.trim()) return;
+    dispatch(sendMessageThunk(messageText));
+  };
 
-    // 1. Aggiungi il messaggio dell'utente
-    const userMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: messageText,
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setError(null);
-
-    // 2. Mostra loading
-    setIsLoading(true);
-
-    try {
-      // 3. Chiamata API (per ora simulata con timeout)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // 4. Simula risposta dell'AI
-      const assistantMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `Hai scritto: "${messageText}". Questa è una risposta simulata. Presto sarò connesso a MadGem!`,
-        timestamp: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      setError("Si è verificato un errore. Riprova.");
-      console.error("Errore invio messaggio:", err);
-    } finally {
-      // 5. Nascondi loading
-      setIsLoading(false);
+  // Handler per cancellare la conversazione
+  const handleClearChat = () => {
+    if (window.confirm("Vuoi davvero cancellare tutta la conversazione?")) {
+      dispatch(clearMessages());
     }
   };
 
@@ -73,6 +51,47 @@ export default function ChatPage() {
           overflow: "hidden",
         }}
       >
+        {/* HEADER con titolo e bottone cancella */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            px: 3,
+            py: 2,
+            borderBottom: 2,
+            borderColor: "divider",
+            bgcolor: "background.default",
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          >
+            💬 <span>Chat con MadGem</span>
+          </Typography>
+
+          <Tooltip title="Cancella tutta la conversazione">
+            <span>
+              {" "}
+              {/* span wrapper per tooltip su IconButton disabilitato */}
+              <IconButton
+                onClick={handleClearChat}
+                disabled={messages.length <= 1}
+                color="error"
+                sx={{
+                  "&:hover": {
+                    bgcolor: "error.light",
+                    color: "error.dark",
+                  },
+                }}
+              >
+                <DeleteOutlineIcon />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+
         {/* Area messaggi */}
         <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
           <MessageList messages={messages} isLoading={isLoading} />

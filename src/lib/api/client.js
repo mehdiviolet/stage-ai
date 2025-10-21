@@ -71,6 +71,7 @@ export const api = {
 /**
  * Esporta l'istanza configurata
  */
+export { apiClient }; // Named export
 export default apiClient;
 
 /**
