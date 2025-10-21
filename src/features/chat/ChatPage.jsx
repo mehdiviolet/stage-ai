@@ -1,4 +1,5 @@
 // src/features/chat/ChatPage.jsx
+import { useEffect } from "react";
 import {
   Box,
   Container,
@@ -13,11 +14,16 @@ import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import {
   sendMessageThunk,
+  loadSessionMessages,
   clearMessages,
   selectMessages,
   selectIsLoading,
   selectError,
 } from "./chatSlice";
+import {
+  selectCurrentSession,
+  updateSessionMessages,
+} from "../sessions/sessionSlice";
 
 export default function ChatPage() {
   const dispatch = useDispatch();
@@ -26,6 +32,26 @@ export default function ChatPage() {
   const messages = useSelector(selectMessages);
   const isLoading = useSelector(selectIsLoading);
   const error = useSelector(selectError);
+  const currentSession = useSelector(selectCurrentSession);
+
+  // Quando cambia la sessione corrente, carica i suoi messaggi
+  useEffect(() => {
+    if (currentSession) {
+      dispatch(loadSessionMessages(currentSession.messages));
+    }
+  }, [currentSession?.id, dispatch]);
+
+  // Quando cambiano i messaggi, aggiorna la sessione
+  useEffect(() => {
+    if (currentSession && messages.length > 0) {
+      dispatch(
+        updateSessionMessages({
+          sessionId: currentSession.id,
+          messages: messages,
+        })
+      );
+    }
+  }, [messages, currentSession?.id, dispatch]);
 
   // Handler per l'invio del messaggio
   const handleSendMessage = async (messageText) => {
@@ -36,7 +62,11 @@ export default function ChatPage() {
   // Handler per cancellare la conversazione
   const handleClearChat = () => {
     if (window.confirm("Vuoi davvero cancellare tutta la conversazione?")) {
-      dispatch(clearMessages());
+      if (currentSession) {
+        // Pulisci i messaggi della sessione corrente
+        dispatch(clearSessionMessages(currentSession.id));
+        dispatch(loadSessionMessages([]));
+      }
     }
   };
 

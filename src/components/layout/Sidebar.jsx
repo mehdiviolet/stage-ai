@@ -1,3 +1,4 @@
+// src/components/layout/Sidebar.jsx
 import PropTypes from "prop-types";
 import {
   Drawer,
@@ -12,25 +13,23 @@ import {
   Button,
   Typography,
 } from "@mui/material";
-import ChatIcon from "@mui/icons-material/Chat";
 import AddIcon from "@mui/icons-material/Add";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
+import HomeIcon from "@mui/icons-material/Home";
 import { useNavigate, useLocation } from "react-router-dom";
-
-/**
- * Sidebar Component - Menu laterale dell'applicazione
- *
- * @param {Boolean} open - Stato aperto/chiuso (per mobile)
- * @param {Function} onClose - Callback per chiudere sidebar (mobile)
- * @param {Array} sessions - Lista sessioni chat (per ora array vuoto)
- */
+import { useDispatch } from "react-redux";
+// import { createSession } from "../../features/sessions/sessionSlice";
+import { createSession } from "../../features/sessions/sessionSlice";
+// import SessionList from "../sessions/SessionList";
+import SessionList from "../session/SessionList";
 
 const DRAWER_WIDTH = 240;
 
-export function Sidebar({ open, onClose, sessions = [] }) {
+export function Sidebar({ open, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
 
   // Handler per navigazione
   const handleNavigation = (path) => {
@@ -43,7 +42,7 @@ export function Sidebar({ open, onClose, sessions = [] }) {
 
   // Handler nuova chat
   const handleNewChat = () => {
-    console.log("🆕 Nuova chat creata (funzione da implementare in Fase 5)");
+    dispatch(createSession());
     navigate("/");
     if (onClose) {
       onClose();
@@ -52,7 +51,7 @@ export function Sidebar({ open, onClose, sessions = [] }) {
 
   // Menu items di navigazione
   const menuItems = [
-    { text: "Chat", icon: <ChatIcon />, path: "/" },
+    { text: "Chat", icon: <HomeIcon />, path: "/" },
     { text: "Storico", icon: <HistoryIcon />, path: "/history" },
     { text: "Impostazioni", icon: <SettingsIcon />, path: "/settings" },
   ];
@@ -93,43 +92,10 @@ export function Sidebar({ open, onClose, sessions = [] }) {
             fontWeight: 600,
           }}
         >
-          SESSIONI
+          CONVERSAZIONI
         </Typography>
 
-        {sessions.length === 0 ? (
-          // Empty state
-          <Box sx={{ p: 2, textAlign: "center" }}>
-            <Typography variant="body2" color="text.secondary">
-              Nessuna sessione
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Clicca "Nuova Chat" per iniziare
-            </Typography>
-          </Box>
-        ) : (
-          // Lista sessioni (verrà popolata nella Fase 5)
-          <List dense>
-            {sessions.map((session) => (
-              <ListItem key={session.id} disablePadding>
-                <ListItemButton
-                  selected={session.active}
-                  onClick={() => console.log("Session clicked:", session.id)}
-                >
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    <ChatIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={session.title}
-                    primaryTypographyProps={{
-                      fontSize: "0.875rem",
-                      noWrap: true,
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        )}
+        <SessionList onSessionClick={onClose} />
       </Box>
 
       <Divider />
@@ -162,10 +128,10 @@ export function Sidebar({ open, onClose, sessions = [] }) {
         open={open}
         onClose={onClose}
         ModalProps={{
-          keepMounted: true, // Migliore performance su mobile
+          keepMounted: true, // Better open performance on mobile
         }}
         sx={{
-          display: { xs: "block", sm: "none" },
+          display: { xs: "block", md: "none" },
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: DRAWER_WIDTH,
@@ -179,7 +145,7 @@ export function Sidebar({ open, onClose, sessions = [] }) {
       <Drawer
         variant="permanent"
         sx={{
-          display: { xs: "none", sm: "block" },
+          display: { xs: "none", md: "block" },
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: DRAWER_WIDTH,
@@ -194,19 +160,6 @@ export function Sidebar({ open, onClose, sessions = [] }) {
 }
 
 Sidebar.propTypes = {
-  open: PropTypes.bool,
+  open: PropTypes.bool.isRequired,
   onClose: PropTypes.func,
-  sessions: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      title: PropTypes.string.isRequired,
-      active: PropTypes.bool,
-    })
-  ),
-};
-
-Sidebar.defaultProps = {
-  open: false,
-  onClose: () => {},
-  sessions: [],
 };

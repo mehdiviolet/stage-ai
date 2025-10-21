@@ -7,15 +7,7 @@ import { sendChatMessage } from "./api";
  */
 const initialState = {
   // Array di messaggi della conversazione corrente
-  messages: [
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Ciao! Sono MadGem, il tuo assistente AI. Come posso aiutarti oggi?",
-      timestamp: new Date().toISOString(),
-    },
-  ],
+  messages: [],
 
   // Stati di caricamento
   isLoading: false,
@@ -35,16 +27,22 @@ const initialState = {
  */
 export const sendMessageThunk = createAsyncThunk(
   "chat/sendMessage",
-  async (messageText, { rejectWithValue }) => {
+  async (messageText, { rejectWithValue, getState }) => {
     try {
       // Chiamata API (mock o reale)
       const response = await sendChatMessage(messageText);
 
-      return {
+      const result = {
         userMessage: messageText,
         aiResponse: response.data.message,
         timestamp: response.data.timestamp || new Date().toISOString(),
       };
+
+      // Salva il sessionId corrente per riferimento
+      const state = getState();
+      const currentSessionId = state.sessions.currentSessionId;
+
+      return { ...result, currentSessionId };
     } catch (error) {
       // Passa l'errore al rejected case
       return rejectWithValue(
@@ -70,10 +68,18 @@ const chatSlice = createSlice({
     },
 
     /**
+     * Carica i messaggi di una sessione specifica
+     */
+    loadSessionMessages: (state, action) => {
+      state.messages = action.payload || [];
+      state.error = null;
+    },
+
+    /**
      * Resetta la conversazione
      */
     clearMessages: (state) => {
-      state.messages = [initialState.messages[0]]; // Mantieni messaggio di benvenuto
+      state.messages = [];
       state.error = null;
     },
 
@@ -131,6 +137,17 @@ const chatSlice = createSlice({
       .addCase(sendMessageThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || "Errore sconosciuto";
+      })
+
+      // Quando si cambia sessione, pulisci errori
+      .addCase("sessions/switchSession", (state) => {
+        state.error = null;
+      })
+
+      // Quando si crea una nuova sessione, svuota i messaggi
+      .addCase("sessions/createSession", (state) => {
+        state.messages = [];
+        state.error = null;
       });
   },
 });
@@ -138,8 +155,13 @@ const chatSlice = createSlice({
 /**
  * Esporta le actions
  */
-export const { addMessage, clearMessages, clearError, setSessionId } =
-  chatSlice.actions;
+export const {
+  addMessage,
+  loadSessionMessages,
+  clearMessages,
+  clearError,
+  setSessionId,
+} = chatSlice.actions;
 
 /**
  * Selectors - Per leggere lo stato in modo ottimizzato
