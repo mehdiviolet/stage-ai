@@ -1,5 +1,5 @@
 // src/features/chat/ChatPage.jsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react"; // ← AGGIUNGI useState
 import {
   Box,
   Container,
@@ -13,20 +13,26 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import {
-  sendMessageThunk,
   loadSessionMessages,
   clearMessages,
   selectMessages,
   selectIsLoading,
   selectError,
+  addMessage,
 } from "./chatSlice";
 import {
   selectCurrentSession,
   updateSessionMessages,
+  clearSessionMessages, // ← AGGIUNGI questo import
 } from "../sessions/sessionSlice";
+import apiClient from "../../lib/api/client";
 
 export default function ChatPage() {
   const dispatch = useDispatch();
+
+  // ✅ AGGIUNGI stato locale per input e loading
+  const [inputMessage, setInputMessage] = useState("");
+  const [isLoadingAPI, setIsLoadingAPI] = useState(false);
 
   // Leggi lo stato da Redux
   const messages = useSelector(selectMessages);
@@ -53,13 +59,65 @@ export default function ChatPage() {
     }
   }, [messages, currentSession?.id, dispatch]);
 
-  // Handler per l'invio del messaggio
-  const handleSendMessage = async (messageText) => {
-    if (!messageText.trim()) return;
-    dispatch(sendMessageThunk(messageText));
+  // ✅ Handler per l'invio del messaggio
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || !currentSession) return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: inputMessage.trim(),
+      sender: "user",
+      timestamp: new Date().toISOString(),
+    };
+
+    // Aggiungi subito il messaggio dell'utente
+    dispatch(addMessage(userMessage));
+
+    setInputMessage("");
+    setIsLoadingAPI(true);
+
+    try {
+      // ✅ CHIAMATA API REALE
+      const response = await apiClient.post("/chat/ask", {
+        message: userMessage.text,
+        sessionId: currentSession.id,
+        history: messages, // Invia lo storico per contesto
+      });
+
+      // Messaggio di risposta dall'AI
+      const aiMessage = {
+        id: Date.now() + 1,
+        text:
+          response.data.reply ||
+          response.data.message ||
+          "Nessuna risposta dall'AI",
+        sender: "ai",
+        timestamp: new Date().toISOString(),
+      };
+
+      dispatch(addMessage(aiMessage));
+    } catch (error) {
+      console.error("❌ Errore API:", error);
+
+      // Messaggio di errore mostrato nella chat
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: `⚠️ Errore: ${
+          error.response?.data?.message ||
+          error.message ||
+          "Impossibile contattare il server"
+        }`,
+        sender: "ai",
+        timestamp: new Date().toISOString(),
+      };
+
+      dispatch(addMessage(errorMessage));
+    } finally {
+      setIsLoadingAPI(false);
+    }
   };
 
-  // Handler per cancellare la conversazione
+  // ✅ Handler per cancellare la conversazione
   const handleClearChat = () => {
     if (window.confirm("Vuoi davvero cancellare tutta la conversazione?")) {
       if (currentSession) {
@@ -103,11 +161,9 @@ export default function ChatPage() {
 
           <Tooltip title="Cancella tutta la conversazione">
             <span>
-              {" "}
-              {/* span wrapper per tooltip su IconButton disabilitato */}
               <IconButton
                 onClick={handleClearChat}
-                disabled={messages.length <= 1}
+                disabled={messages.length === 0}
                 color="error"
                 sx={{
                   "&:hover": {
@@ -124,14 +180,16 @@ export default function ChatPage() {
 
         {/* Area messaggi */}
         <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-          <MessageList messages={messages} isLoading={isLoading} />
+          <MessageList messages={messages} isLoading={isLoadingAPI} />
         </Box>
 
         {/* Input messaggio */}
         <Box sx={{ borderTop: 1, borderColor: "divider", p: 2 }}>
           <ChatInput
+            value={inputMessage}
+            onChange={setInputMessage}
             onSendMessage={handleSendMessage}
-            disabled={isLoading}
+            disabled={isLoadingAPI}
             error={error}
           />
         </Box>

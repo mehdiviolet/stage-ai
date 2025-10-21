@@ -113,6 +113,16 @@ const sessionSlice = createSlice({
       }
     },
 
+    clearSessionMessages: (state, action) => {
+      const sessionId = action.payload;
+      const session = state.items.find((s) => s.id === sessionId);
+
+      if (session) {
+        session.messages = [];
+        session.updatedAt = new Date().toISOString();
+        session.title = "Nuova conversazione"; // Reset anche il titolo
+      }
+    },
     /**
      * Carica sessioni da localStorage (usato all'avvio)
      */
@@ -148,6 +158,7 @@ export const {
   updateSessionMessages,
   loadSessions,
   clearAllSessions,
+  clearSessionMessages,
 } = sessionSlice.actions;
 
 /**
@@ -165,6 +176,45 @@ export const selectSessionById = (sessionId) => (state) => {
 };
 export const selectSortedSessions = (state) => {
   return sortSessionsByDate(state.sessions.items);
+};
+
+export const loadSessionsFromStorage = () => (dispatch) => {
+  try {
+    const savedData = localStorage.getItem("sessions");
+
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+
+      // Verifica che i dati abbiano la struttura corretta
+      if (parsed && parsed.items && Array.isArray(parsed.items)) {
+        // Carica tutte le sessioni in un colpo solo
+        dispatch(
+          loadSessions({
+            sessions: parsed.items,
+            currentSessionId: parsed.currentSessionId,
+          })
+        );
+
+        console.log(
+          "✅ Sessioni caricate da localStorage:",
+          parsed.items.length
+        );
+      }
+    }
+  } catch (error) {
+    console.error("❌ Errore nel caricamento sessioni:", error);
+  }
+};
+
+/**
+ * Salva le sessioni in localStorage
+ */
+export const saveSessionsToStorage = (sessionsState) => {
+  try {
+    localStorage.setItem("sessions", JSON.stringify(sessionsState));
+  } catch (error) {
+    console.error("❌ Errore nel salvataggio sessioni:", error);
+  }
 };
 
 /**
